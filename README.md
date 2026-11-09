@@ -1,128 +1,77 @@
-# Hobby Biches · Sistema de Banhos (versão profissional)
+# UniPets · Sistema de Banhos do Hobby Biches
 
-Sistema com **banco de dados real** (Supabase/PostgreSQL), **login por funcionário** e
-**atualização em tempo real** entre dispositivos — pronto para usar de verdade ou vender
-para outros pet shops.
+Projeto de Extensão para gerenciar os banhos de um pet shop. O sistema permite cadastrar clientes e pets, acompanhar banhos em andamento, gerenciar planos e consultar ou editar preços. A interface usa React e Vite. O Supabase fornece o banco PostgreSQL, a autenticação e o armazenamento de fotos.
 
-Você não precisa saber programar para colocar isso no ar. Siga os passos na ordem.
-Tempo estimado: 30–40 minutos na primeira vez.
+## Pré-requisitos
 
----
+- Git.
+- Node.js 22 ou superior, de preferência uma versão LTS, com npm.
+- Uma conta no [Supabase](https://supabase.com/) para criar um projeto de teste.
 
-## O que você vai criar (e é tudo gratuito para começar)
+## Instalação e execução local
 
-| Serviço | Para que serve | Custo |
-|---|---|---|
-| **Supabase** | Banco de dados, login dos funcionários, fotos dos pets | Grátis (plano free cobre um pet shop tranquilamente) |
-| **Vercel** | Hospeda o site com um link (ex: hobbybiches.vercel.app) | Grátis |
-| **Node.js** | Ferramenta no seu computador para preparar o projeto | Grátis |
+### 1. Baixe o código e instale as dependências
 
----
+```bash
+git clone https://github.com/jldantass/unipets.git
+cd unipets
+npm ci
+```
 
-## Passo 1 — Criar o projeto no Supabase
+### 2. Configure o banco de dados
 
-1. Acesse **https://supabase.com** e crie uma conta gratuita.
-2. Clique em **"New project"**.
-3. Dê um nome (ex: `hobby-biches`), crie uma senha forte para o banco (guarde-a) e escolha a região mais perto de você (ex: South America).
-4. Aguarde ~2 minutos até o projeto ficar pronto.
+1. Crie um projeto no painel do Supabase.
+2. Abra o **SQL Editor**, crie uma consulta e execute o conteúdo de [`supabase/schema.sql`](supabase/schema.sql) uma vez. O script cria as tabelas, insere preços de exemplo e configura as políticas de acesso e as atualizações em tempo real.
+3. Em uma nova consulta, execute o SQL abaixo para conceder ao papel `authenticated` as permissões de tabela usadas pelo aplicativo. As políticas de acesso do script continuam valendo.
 
-## Passo 2 — Criar as tabelas do banco de dados
+```sql
+grant select, insert on table public.clientes to authenticated;
+grant select, insert, update, delete on table public.animais, public.precos to authenticated;
+grant select, insert, update on table public.banhos to authenticated;
+```
 
-1. No menu lateral do Supabase, clique em **"SQL Editor"**.
-2. Clique em **"New query"**.
-3. Abra o arquivo `supabase/schema.sql` (está nesta pasta que você recebeu), copie **todo o conteúdo** e cole no editor.
-4. Clique em **"Run"**. Isso cria as tabelas de clientes, animais, banhos e preços, já com alguns preços de exemplo.
+### 3. Configure o armazenamento de fotos
 
-## Passo 3 — Criar o espaço de armazenamento das fotos
+Se quiser testar o envio de fotos, abra **Storage** no Supabase e crie um bucket público chamado `fotos-pets`. A leitura das fotos funciona por URL pública. Para permitir o envio por usuários logados, execute no **SQL Editor**:
 
-1. No menu lateral, clique em **"Storage"**.
-2. Clique em **"New bucket"**, nomeie como `fotos-pets`.
-3. Marque a opção **"Public bucket"** (assim as fotos aparecem no sistema) e crie.
+```sql
+create policy "Funcionarios podem enviar fotos dos pets"
+on storage.objects
+for insert
+to authenticated
+with check (bucket_id = 'fotos-pets');
+```
 
-## Passo 4 — Pegar as chaves de conexão
+### 4. Configure as variáveis de ambiente
 
-1. No menu lateral, clique em **"Project Settings" → "API"**.
-2. Copie o **"Project URL"** e a chave **"anon public"** — vai precisar delas no Passo 6.
+Na raiz do repositório, copie [`.env.example`](.env.example) para um arquivo chamado `.env`. No painel do Supabase, abra **Connect** e use a URL do projeto e a chave pública (**Publishable key**). Se seu projeto ainda usa a chave legada `anon`, ela também pode ser usada.
 
-## Passo 5 — Instalar o Node.js no seu computador
+```dotenv
+VITE_SUPABASE_URL=https://seu-projeto.supabase.co
+VITE_SUPABASE_ANON_KEY=sb_publishable_sua_chave
+```
 
-1. Baixe em **https://nodejs.org** (escolha a versão **LTS**) e instale normalmente (Next, Next, Concluir).
-2. Para conferir se funcionou, abra o Terminal (Mac/Linux) ou Prompt de Comando (Windows) e digite:
-   ```
-   node -v
-   ```
-   Deve aparecer um número de versão.
+Mantenha o nome `VITE_SUPABASE_ANON_KEY` como no exemplo. Use apenas a chave pública no frontend. Chaves `service_role` e `sb_secret_...` devem ficar fora do `.env` do aplicativo. [Documentação de chaves do Supabase](https://supabase.com/docs/guides/getting-started/api-keys)
 
-## Passo 6 — Configurar o projeto
+### 5. Crie um usuário de teste
 
-1. Extraia a pasta `hobby-biches-app` que você recebeu em algum lugar do seu computador (ex: Área de Trabalho).
-2. Dentro dela, encontre o arquivo `.env.example` e faça uma cópia renomeada para `.env`.
-3. Abra o `.env` num editor de texto e cole a URL e a chave que você copiou no Passo 4:
-   ```
-   VITE_SUPABASE_URL=https://seu-projeto.supabase.co
-   VITE_SUPABASE_ANON_KEY=sua-chave-aqui
-   ```
+No Supabase, abra **Authentication → Users → Add user → Create new user**. Informe um e-mail e uma senha de teste e marque **Auto Confirm User** para ativar o login imediatamente.
 
-## Passo 7 — Rodar o sistema no seu computador (teste local)
+### 6. Inicie o sistema
 
-1. Abra o Terminal/Prompt de Comando **dentro da pasta** `hobby-biches-app`.
-   - Dica: no Windows, entre na pasta pelo Explorador de Arquivos, clique na barra de endereço, digite `cmd` e aperte Enter.
-2. Digite:
-   ```
-   npm install
-   ```
-   (baixa as peças que o sistema usa — só precisa fazer isso uma vez, demora alguns minutos)
-3. Depois digite:
-   ```
-   npm run dev
-   ```
-4. Vai aparecer um link tipo `http://localhost:5173`. Abra no navegador — o sistema deve carregar a tela de login.
+```bash
+npm run dev
+```
 
-## Passo 8 — Criar os primeiros funcionários (login)
+Abra o endereço exibido no terminal, geralmente `http://localhost:5173`. Entre com o usuário de teste e cadastre um cliente e um pet fictícios. Para conferir o fluxo principal, inicie e finalize um banho no painel.
 
-1. No Supabase, vá em **"Authentication" → "Users"**.
-2. Clique em **"Add user" → "Create new user"**.
-3. Preencha e-mail e senha para você (e depois para cada funcionário) e marque **"Auto Confirm User"**.
-4. Volte no sistema (localhost) e faça login com esse e-mail e senha.
+## Build e publicação opcional
 
-## Passo 9 — Colocar o sistema no ar de verdade (Vercel)
+Para gerar e conferir a versão de produção localmente, execute:
 
-1. Crie uma conta gratuita em **https://vercel.com** (pode entrar com o mesmo e-mail).
-2. No Terminal, ainda dentro da pasta do projeto, rode:
-   ```
-   npm install -g vercel
-   vercel login
-   vercel
-   ```
-3. Responda as perguntas com Enter (valores padrão) até o final. Na primeira vez ele te devolve um link de teste.
-4. Quando as variáveis do `.env` forem pedidas (ou depois, no site da Vercel em **Project → Settings → Environment Variables**), adicione as mesmas duas chaves do Passo 6.
-5. Para publicar a versão final, rode:
-   ```
-   vercel --prod
-   ```
-6. Pronto — você recebe um link definitivo (ex: `hobby-biches.vercel.app`) que funciona em qualquer computador ou celular, com os dados sincronizados em tempo real entre todos os funcionários.
+```bash
+npm run build
+npm run preview
+```
 
-> Depois, se quiser, dá pra ligar um domínio próprio (ex: sistema.hobbybiches.com.br) em **Vercel → Settings → Domains**.
-
----
-
-## Como usar no dia a dia
-
-- **Painel**: mostra os banhos em andamento em tempo real — se um funcionário iniciar um banho, todos os outros dispositivos veem na hora.
-- **Cadastro**: cadastra cliente + animal, com foto opcional.
-- **Planos**: assina, renova e acompanha o uso dos banhos do plano.
-- **Buscar**: por nome do animal, dono, CPF, raça ou telefone.
-- **Preços**: a equipe pode consultar e o administrador pode editar os valores direto pela tela — não precisa mexer em código.
-
-## Se quiser vender para outros pet shops
-
-Hoje o sistema atende **um pet shop por projeto Supabase**. Para vender como produto (SaaS) para vários
-pet shops diferentes, o próximo passo de arquitetura é adicionar uma tabela `lojas` e uma coluna
-`loja_id` em cada tabela, para separar os dados de cada cliente dentro do mesmo banco — posso te ajudar
-a construir essa parte quando você chegar lá.
-
-## Problemas comuns
-
-- **Tela de login não carrega / erro no console**: confira se o `.env` está preenchido corretamente e se você rodou `npm install`.
-- **"Erro ao salvar" em qualquer tela**: geralmente é porque o Passo 2 (schema.sql) não rodou completo — volte ao SQL Editor e rode de novo.
-- **Foto não aparece**: confira se o bucket `fotos-pets` foi criado como **público** (Passo 3).
+O build é gerado na pasta `dist`. Para publicar na Vercel, importe o repositório como um projeto Vite e configure as duas variáveis do Supabase em **Settings → Environment Variables** antes do deploy. A execução local funciona sem uma conta na Vercel.
