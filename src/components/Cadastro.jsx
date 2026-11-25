@@ -1,11 +1,8 @@
 import { useRef, useState } from 'react'
 import { supabase } from '../supabaseClient'
-import Avatar from './Avatar'
-import { planoStatus, STATUS_LABEL, STATUS_PILL_CLASS } from '../lib/helpers'
+import { PORTES } from '../lib/helpers'
 
-const PORTES = ['Pequeno', 'Médio', 'Grande']
-
-export default function Cadastro({ animais, clientes, clienteById, refreshAll, showToast, openAnimalDetail }) {
+export default function Cadastro({ refreshAll, showToast }) {
   const fotoInputRef = useRef(null)
   const [fotoPreview, setFotoPreview] = useState(null)
   const [salvando, setSalvando] = useState(false)
@@ -36,7 +33,6 @@ export default function Cadastro({ animais, clientes, clienteById, refreshAll, s
 
     if (errCliente) { showToast('Erro ao salvar cliente: ' + errCliente.message); setSalvando(false); return }
 
-    // Faz upload da foto para o Supabase Storage (bucket "fotos-pets"), se houver uma selecionada
     let foto_url = null
     const file = fotoInputRef.current?.files?.[0]
     if (file) {
@@ -61,13 +57,6 @@ export default function Cadastro({ animais, clientes, clienteById, refreshAll, s
     if (fotoInputRef.current) fotoInputRef.current.value = ''
     refreshAll()
     showToast('Cliente e animal cadastrados 🎉')
-  }
-
-  async function excluir(id, nome) {
-    if (!window.confirm(`Remover ${nome} e seu histórico de banhos?`)) return
-    const { error } = await supabase.from('animais').delete().eq('id', id)
-    if (error) { showToast('Erro ao excluir: ' + error.message); return }
-    refreshAll()
   }
 
   return (
@@ -116,36 +105,6 @@ export default function Cadastro({ animais, clientes, clienteById, refreshAll, s
         <button className="btn btn-primary" disabled={salvando} onClick={salvar}>
           {salvando ? 'Salvando...' : 'Salvar cliente e animal'}
         </button>
-      </div>
-
-      <div className="list-panel">
-        <div className="lp-head"><h3 style={{ margin: 0, fontSize: 15 }}>Clientes e animais cadastrados ({animais.length})</h3></div>
-        <table>
-          <thead><tr><th>Animal</th><th>Dono</th><th>Contato</th><th>Plano</th><th></th></tr></thead>
-          <tbody>
-            {animais.map(a => {
-              const c = clienteById(a.cliente_id)
-              const st = planoStatus(a)
-              return (
-                <tr className="rowhover" key={a.id} onClick={() => openAnimalDetail(a.id)}>
-                  <td><div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <Avatar animal={a} size={34} fontSize={14} />
-                    <div><div className="cell-name">{a.nome}</div><div className="cell-sub">{a.raca} · {a.porte}</div></div>
-                  </div></td>
-                  <td>{c?.nome || '—'}<div className="cell-sub">{c?.cpf}</div></td>
-                  <td>{c?.telefone || '—'}</td>
-                  <td><span className={`pill ${STATUS_PILL_CLASS[st]}`}>{STATUS_LABEL[st]}</span></td>
-                  <td style={{ textAlign: 'right' }}>
-                    <button className="btn btn-ghost btn-sm" onClick={e => { e.stopPropagation(); excluir(a.id, a.nome) }}>Excluir</button>
-                  </td>
-                </tr>
-              )
-            })}
-            {animais.length === 0 && (
-              <tr><td colSpan="5" style={{ textAlign: 'center', color: 'var(--texto-suave)', padding: 24 }}>Nenhum animal cadastrado ainda.</td></tr>
-            )}
-          </tbody>
-        </table>
       </div>
     </>
   )

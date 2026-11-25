@@ -3,17 +3,47 @@ import { supabase } from '../supabaseClient'
 import Avatar from './Avatar'
 import PawMeter from './PawMeter'
 import PlanModal from './PlanModal'
+import ServiceDialog from './ServiceDialog'
+import { formatarReais, nomesDoServico } from '../lib/servicePricing'
 import { planoStatus, STATUS_LABEL, STATUS_PILL_CLASS, fmtDate, fmtDateTime } from '../lib/helpers'
 
-export default function AnimalModal({ animal, cliente, banhos, onClose, refreshAll, showToast }) {
+export default function AnimalModal({
+  animal, cliente, banhos, catalogo, precos, clienteById,
+  onClose, refreshAll, refreshCatalogo, showToast, finalizarServico,
+}) {
   const fotoInputRef = useRef(null)
   const [trocandoFoto, setTrocandoFoto] = useState(false)
   const [mostrarPlano, setMostrarPlano] = useState(false)
+  const [mostrarServico, setMostrarServico] = useState(false)
+
+  const [excluindo, setExcluindo] = useState(false)
 
   if (!animal) return null
   const st = planoStatus(animal)
   const historico = [...banhos].sort((a, b) => new Date(b.hora_inicio) - new Date(a.hora_inicio))
   const emAndamento = historico.find(b => b.status === 'em_andamento')
+
+  async function excluirAnimal() {
+    if (!window.confirm("Remover " + animal.nome + " e seu histórico de serviços?")) return
+    setExcluindo(true)
+    const { error } = await supabase.from('animais').delete().eq('id', animal.id)
+    setExcluindo(false)
+    if (error) { showToast('Erro ao excluir: ' + error.message); return }
+    onClose()
+    refreshAll()
+    showToast('Animal excluído.')
+  }
+
+  async function cancelarPlano() {
+    if (!window.confirm("Cancelar o plano de " + animal.nome + "?")) return
+    const { error } = await supabase.from('animais').update({
+      plano_catalogo_id: null, plano_tipo: null, plano_banhos_totais: null, plano_banhos_usados: 0,
+      plano_data_assinatura: null, plano_data_expiracao: null,
+    }).eq('id', animal.id)
+    if (error) { showToast('Erro ao cancelar plano: ' + error.message); return }
+    refreshAll()
+    showToast('Plano cancelado.')
+  }
 
   async function trocarFoto(e) {
     const file = e.target.files[0]
@@ -29,22 +59,6 @@ export default function AnimalModal({ animal, cliente, banhos, onClose, refreshA
     if (error) { showToast('Erro ao salvar foto: ' + error.message); return }
     refreshAll()
     showToast('Foto atualizada 📷')
-  }
-
-  async function iniciarBanho() {
-    const obs = window.prompt(`Alguma observação para o banho de ${animal.nome}? (opcional)`, '') || ''
-    const { error } = await supabase.from('banhos').insert({ animal_id: animal.id, observacoes: obs })
-    if (error) { showToast('Erro: ' + error.message); return }
-    refreshAll()
-  }
-
-  async function finalizarBanho(banho) {
-    const { error } = await supabase.from('banhos').update({ status: 'finalizado', hora_fim: new Date().toISOString() }).eq('id', banho.id)
-    if (error) { showToast('Erro: ' + error.message); return }
-    if (animal.plano_tipo && planoStatus(animal) !== 'expirado' && animal.plano_banhos_usados < animal.plano_banhos_totais) {
-      await supabase.from('animais').update({ plano_banhos_usados: animal.plano_banhos_usados + 1 }).eq('id', animal.id)
-    }
-    refreshAll()
   }
 
   return (
@@ -82,6 +96,10 @@ export default function AnimalModal({ animal, cliente, banhos, onClose, refreshA
               </div>
               <div style={{ margin: '10px 0 4px' }}><PawMeter usados={animal.plano_banhos_usados} total={animal.plano_banhos_totais} /></div>
               <div className="cell-sub">{animal.plano_banhos_usados}/{animal.plano_banhos_totais} banhos usados · expira em {fmtDate(animal.plano_data_expiracao)}</div>
+              <div className="workflow-actions" style={{ marginTop: 12 }}>
+                <button className="btn btn-ghost btn-sm" onClick={() => setMostrarPlano(true)}>Renovar / editar</button>
+                <button className="btn btn-ghost btn-sm" onClick={cancelarPlano}>Cancelar plano</button>
+              </div>
             </div>
           ) : (
             <div className="panel" style={{ boxShadow: 'none', border: '1px solid var(--borda)', padding: 16, textAlign: 'center' }}>
@@ -92,28 +110,44 @@ export default function AnimalModal({ animal, cliente, banhos, onClose, refreshA
 
           <div className="divider" />
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-            <h3 style={{ margin: 0, fontSize: 14 }}>🚿 Banho</h3>
+            <h3 style={{ margin: 0, fontSize: 14 }}>Serviços</h3>
             {emAndamento
-              ? <button className="btn btn-primary btn-sm" onClick={() => finalizarBanho(emAndamento)}>Finalizar banho</button>
-              : <button className="btn btn-accent btn-sm" onClick={iniciarBanho}>Iniciar banho</button>}
+              ? <button className="btn btn-primary btn-sm" onClick={() => finalizarServico(emAndamento)}>Finalizar serviço</button>
+              : <button className="btn btn-accent btn-sm" onClick={() => setMostrarServico(true)}>Iniciar serviço</button>}
           </div>
 
-          <h3 style={{ margin: '14px 0 6px', fontSize: 14 }}>📜 Histórico de banhos</h3>
+          <h3 style={{ margin: '14px 0 6px', fontSize: 14 }}>Histórico de serviços</h3>
           {historico.length === 0
-            ? <div className="cell-sub">Nenhum banho registrado ainda.</div>
+            ? <div className="cell-sub">Nenhum serviço registrado ainda.</div>
             : historico.slice(0, 8).map(b => (
               <div className="hist-item" key={b.id}>
-                <span>{fmtDateTime(b.hora_inicio)}</span>
+                <div>
+                  <strong>{nomesDoServico(b)}</strong>
+                  <div className="cell-sub">
+                    {fmtDateTime(b.hora_inicio)}{b.valor_total != null && " · " + formatarReais(b.valor_total)}
+                  </div>
+                </div>
                 <span className={`pill ${b.status === 'em_andamento' ? 'pill-red' : 'pill-green'}`}>
                   {b.status === 'em_andamento' ? 'Em andamento' : 'Finalizado'}
                 </span>
               </div>
             ))}
+          <div className="divider" />
+          <button type="button" className="btn btn-ghost btn-sm" disabled={excluindo} onClick={excluirAnimal}>
+            {excluindo ? 'Excluindo…' : 'Excluir animal'}
+          </button>
         </div>
       </div>
 
+      {mostrarServico && (
+        <ServiceDialog
+          animais={emAndamento ? [] : [animal]} animalInicial={animal.id} precos={precos}
+          catalogo={catalogo} clienteById={clienteById} refreshAll={refreshAll}
+          refreshCatalogo={refreshCatalogo} showToast={showToast} onClose={() => setMostrarServico(false)}
+        />
+      )}
       {mostrarPlano && (
-        <PlanModal animal={animal} onClose={() => setMostrarPlano(false)} refreshAll={refreshAll} showToast={showToast} />
+        <PlanModal animal={animal} catalogo={catalogo} onClose={() => setMostrarPlano(false)} refreshAll={refreshAll} showToast={showToast} />
       )}
     </div>
   )

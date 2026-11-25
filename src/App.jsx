@@ -11,17 +11,18 @@ import Precos from './components/Precos'
 import AnimalModal from './components/AnimalModal'
 
 export default function App() {
-  const [session, setSession] = useState(undefined) // undefined = carregando, null = deslogado
+  const [session, setSession] = useState(undefined)
   const [view, setView] = useState('dashboard')
   const [clientes, setClientes] = useState([])
   const [animais, setAnimais] = useState([])
   const [banhos, setBanhos] = useState([])
   const [precos, setPrecos] = useState([])
+  const [catalogo, setCatalogo] = useState(null)
+  const [erroCatalogo, setErroCatalogo] = useState('')
   const [loadingData, setLoadingData] = useState(true)
   const [toastMsg, setToastMsg] = useState('')
   const [detailAnimalId, setDetailAnimalId] = useState(null)
 
-  // ---------- autenticação ----------
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session))
     const { data: listener } = supabase.auth.onAuthStateChange((_event, s) => setSession(s))
@@ -33,9 +34,7 @@ export default function App() {
     setTimeout(() => setToastMsg(''), 2600)
   }
 
-  // ---------- carregar dados ----------
   const refreshAll = useCallback(async () => {
-    setLoadingData(true)
     const [{ data: c }, { data: a }, { data: b }, { data: p }] = await Promise.all([
       supabase.from('clientes').select('*').order('nome'),
       supabase.from('animais').select('*').order('nome'),
@@ -49,10 +48,22 @@ export default function App() {
     setLoadingData(false)
   }, [])
 
+  const refreshCatalogo = useCallback(async () => {
+    const { data, error } = await supabase.from('planos_banho').select('id, nome, total_banhos, validade_dias, preco, porte').order('preco').order('nome')
+    setCatalogo(data || [])
+    setErroCatalogo(['PGRST205', '42P01', '42703'].includes(error?.code)
+      ? 'O catálogo precisa ser atualizado no Supabase. Siga os passos do banco no README.'
+      : error ? 'Não foi possível carregar os planos: ' + error.message : '')
+  }, [])
+
   useEffect(() => {
     if (!session) return
+    refreshCatalogo()
+  }, [session, refreshCatalogo])
+
+  useEffect(() => {
+    if (!session) { setLoadingData(true); return }
     refreshAll()
-    // Atualiza sozinho quando qualquer funcionário mexe em banhos/animais
     const channel = supabase
       .channel('hb-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'banhos' }, refreshAll)
@@ -69,30 +80,40 @@ export default function App() {
   const clienteById = id => clientes.find(c => c.id === id)
   const animalById = id => animais.find(a => a.id === id)
 
+  async function finalizarServico(registro) {
+    const { error } = await supabase.rpc('finalizar_servico', { p_id: registro.id })
+    if (error) {
+      showToast(error.code === 'PGRST202' ? 'Atualize o banco do Supabase seguindo o README.' : 'Erro ao finalizar serviço: ' + error.message)
+      return
+    }
+    await refreshAll()
+    showToast('Serviço finalizado.')
+  }
+
   const titles = {
-    dashboard: ['Painel de Banhos', 'Acompanhe em tempo real quem está no banho agora'],
-    cadastro: ['Cadastro', 'Clientes, animais e restrições de banho'],
-    planos: ['Planos de Banho', 'Assinaturas, uso e vencimento'],
+    dashboard: ['Painel de Serviços', 'Acompanhe os atendimentos em tempo real'],
+    cadastro: ['Cadastro', 'Clientes, animais e cuidados especiais'],
+    planos: ['Planos de Banho', 'Cadastre e gerencie os planos oferecidos pelo pet shop'],
     busca: ['Busca', 'Encontre por animal, dono, CPF, raça ou telefone'],
     precos: ['Tabela de Preços', 'Valores de consulta e edição para a equipe'],
   }
 
   const viewProps = {
-    clientes, animais, banhos, precos,
-    clienteById, animalById, refreshAll, showToast,
+    animais, banhos, precos, catalogo, erroCatalogo, refreshCatalogo,
+    clienteById, animalById, refreshAll, showToast, finalizarServico,
     openAnimalDetail: setDetailAnimalId,
   }
 
   return (
     <div className="app">
       <Sidebar view={view} setView={setView} userEmail={session.user.email} />
-      <div className="main">
-        <div className="topbar">
+      <main className="main">
+        <header className="topbar">
           <div>
             <h1>{titles[view][0]}</h1>
             <div className="sub">{titles[view][1]}</div>
           </div>
-        </div>
+        </header>
 
         {loadingData ? (
           <div className="empty-state"><div className="ic">⏳</div><h3>Carregando dados…</h3><p></p></div>
@@ -105,12 +126,17 @@ export default function App() {
             {view === 'precos' && <Precos {...viewProps} />}
           </>
         )}
-      </div>
+      </main>
 
       {detailAnimalId && (
         <AnimalModal
           animal={animalById(detailAnimalId)}
           cliente={clienteById(animalById(detailAnimalId)?.cliente_id)}
+          catalogo={catalogo || []}
+          clienteById={clienteById}
+          precos={precos}
+          refreshCatalogo={refreshCatalogo}
+          finalizarServico={finalizarServico}
           banhos={banhos.filter(b => b.animal_id === detailAnimalId)}
           onClose={() => setDetailAnimalId(null)}
           refreshAll={refreshAll}

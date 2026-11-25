@@ -1,3 +1,5 @@
+export const PORTES = ['Pequeno', 'Médio', 'Grande']
+
 export function fmtDate(iso) {
   if (!iso) return '—'
   return new Date(iso).toLocaleDateString('pt-BR')
@@ -24,7 +26,6 @@ export function initials(name) {
   return (name || '?').trim().charAt(0).toUpperCase()
 }
 
-// Calcula o status do plano de banho de um animal
 export function planoStatus(animal) {
   if (!animal.plano_tipo) return 'sem_plano'
   const dLeft = daysUntil(animal.plano_data_expiracao)

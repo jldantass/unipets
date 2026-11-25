@@ -1,6 +1,8 @@
 # Testes do UniPets
 
-Foram executados **13 testes unitários**, **11 casos funcionais** e **1 teste automatizado de interface**. Todos foram aprovados. Os testes unitários verificam as regras dos planos e da busca. Os casos funcionais verificam o comportamento pela interface. O Selenium automatiza o login no Microsoft Edge e confirma a abertura do Painel de Banhos.
+Na execução original do relatório, foram executados **13 testes unitários**, **11 casos funcionais** e **1 teste automatizado de interface**. Todos foram aprovados. Os testes unitários verificam as regras dos planos e da busca. Os casos funcionais verificam o comportamento pela interface. O Selenium automatiza o login no Microsoft Edge e confirma a abertura do Painel de Banhos.
+
+Depois do relatório, foram adicionados seis testes unitários do cálculo de preço e desconto dos serviços. O comando de testes executa os 19 casos. A medição de cobertura continua focada em `src/lib/helpers.js`.
 
 ## Testes unitários e cobertura
 
@@ -53,6 +55,6 @@ Na raiz do projeto, rode `python tests/gerar_fotos.py` para criar os três PNGs 
    .\.venv\Scripts\python.exe tests/e2e/login.py
    ```
 
-3. Digite o e-mail e a senha da conta de teste quando o terminal solicitar. O script verifica se a seção **Banhos em andamento** aparece e salva a captura em `test-evidence/E2E-01-login.png`.
+3. Digite o e-mail e a senha da conta de teste quando o terminal solicitar. O script verifica se a seção **Serviços em andamento** aparece e salva a captura em `test-evidence/E2E-01-login.png`.
 
-O **E2E-01 foi aprovado** com Selenium 4.52.0 no Microsoft Edge. Na tentativa inicial, a política de Controle de Aplicativo do Windows bloqueou o ChromeDriver com `WinError 4551`. O teste passou após trocar o navegador do script para o Edge, com a política do Windows ativa.
+Na versão anterior do painel, o **E2E-01 foi aprovado** com Selenium 4.52.0 no Microsoft Edge. Na tentativa inicial, a política de Controle de Aplicativo do Windows bloqueou o ChromeDriver com `WinError 4551`. O teste passou após trocar o navegador do script para o Edge, com a política do Windows ativa.

@@ -26,7 +26,7 @@ def testar_login():
 
         espera.until(
             EC.visibility_of_element_located(
-                (By.XPATH, "//h2[contains(., 'Banhos em andamento')]")
+                (By.XPATH, "//h2[contains(., 'Serviços em andamento')]")
             )
         )
         evidencia.parent.mkdir(exist_ok=True)

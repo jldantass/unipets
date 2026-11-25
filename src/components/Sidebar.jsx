@@ -1,31 +1,35 @@
 import { supabase } from '../supabaseClient'
+import Icon from './Icon'
 
 const ITEMS = [
-  { id: 'dashboard', icon: '🏠', label: 'Painel' },
-  { id: 'cadastro', icon: '📝', label: 'Cadastro' },
-  { id: 'planos', icon: '🎟️', label: 'Planos' },
-  { id: 'busca', icon: '🔍', label: 'Buscar' },
-  { id: 'precos', icon: '💲', label: 'Preços' },
+  { id: 'dashboard', label: 'Painel' },
+  { id: 'cadastro', label: 'Cadastro' },
+  { id: 'planos', label: 'Planos' },
+  { id: 'busca', label: 'Buscar' },
+  { id: 'precos', label: 'Preços' },
 ]
 
 export default function Sidebar({ view, setView, userEmail }) {
   return (
-    <div className="sidebar">
+    <aside className="sidebar">
       <div className="brand">
-        <img className="brand-logo" src="/logo.png" alt="Logo Hobby Biches" />
-        <div className="brand-text"><b>Hobby Biches</b><span>Seu Pet, nossa paixão!</span></div>
+        <img className="brand-logo" src="/unipets.svg" alt="" width="42" height="42" />
+        <div className="brand-text"><b>UniPets</b><span>Gestão de serviços</span></div>
       </div>
-      {ITEMS.map(it => (
-        <button key={it.id} className={`nav-item ${view === it.id ? 'active' : ''}`} onClick={() => setView(it.id)}>
-          <span className="ic">{it.icon}</span> {it.label}
-        </button>
-      ))}
+      <nav className="nav-menu" aria-label="Navegação principal">
+        {ITEMS.map(({ id, label }) => (
+          <button type="button" key={id} className={`nav-item ${view === id ? 'active' : ''}`}
+            aria-current={view === id ? 'page' : undefined} onClick={() => setView(id)}>
+            <Icon name={id} />{label}
+          </button>
+        ))}
+      </nav>
       <div className="sidebar-foot">
-        <div className="user-chip">👤 {userEmail}</div>
-        <button className="nav-item" onClick={() => supabase.auth.signOut()}>
-          <span className="ic">🚪</span> Sair
+        <div className="user-chip"><Icon name="user" /><span title={userEmail}>{userEmail}</span></div>
+        <button className="nav-item" type="button" onClick={() => supabase.auth.signOut()}>
+          <Icon name="exit" /> Sair
         </button>
       </div>
-    </div>
+    </aside>
   )
 }

@@ -19,17 +19,17 @@ export default function Login() {
   return (
     <div className="login-wrap">
       <form className="login-card" onSubmit={entrar}>
-        <img src="/logo.png" alt="Hobby Biches" />
-        <h1>Hobby Biches</h1>
+        <img src="/unipets.svg" alt="" width="64" height="64" />
+        <h1>UniPets</h1>
         <p>Entre com sua conta de funcionário</p>
         {erro && <div className="login-error">{erro}</div>}
         <div className="field" style={{ textAlign: 'left' }}>
-          <label>E-mail</label>
-          <input type="email" value={email} onChange={e => setEmail(e.target.value)} required placeholder="voce@hobbybiches.com" />
+          <label htmlFor="login-email">E-mail</label>
+          <input id="login-email" type="email" autoComplete="username" value={email} onChange={e => setEmail(e.target.value)} required placeholder="voce@exemplo.com" />
         </div>
         <div className="field" style={{ textAlign: 'left' }}>
-          <label>Senha</label>
-          <input type="password" value={senha} onChange={e => setSenha(e.target.value)} required placeholder="••••••••" />
+          <label htmlFor="login-senha">Senha</label>
+          <input id="login-senha" type="password" autoComplete="current-password" value={senha} onChange={e => setSenha(e.target.value)} required />
         </div>
         <button className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }} disabled={loading}>
           {loading ? 'Entrando...' : 'Entrar'}

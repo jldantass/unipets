@@ -98,7 +98,7 @@ export default function Precos({ precos, refreshAll, showToast }) {
                       <>
                         <td className="cell-name">{p.nome}</td>
                         <td>{p.porte}</td>
-                        <td style={{ fontWeight: 800, color: 'var(--azul)' }}>R$ {Number(p.preco).toFixed(2).replace('.', ',')}</td>
+                        <td style={{ fontWeight: 800, color: 'var(--vermelho)' }}>R$ {Number(p.preco).toFixed(2).replace('.', ',')}</td>
                         <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                           <button className="btn btn-ghost btn-sm" onClick={() => iniciarEdicao(p)} style={{ marginRight: 6 }}>Editar</button>
                           <button className="btn btn-ghost btn-sm" onClick={() => excluir(p.id)}>Excluir</button>

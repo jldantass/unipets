@@ -1,6 +1,6 @@
-# UniPets · Sistema de Banhos do Hobby Biches
+# UniPets · Gestão de Serviços do Hobby Biches
 
-Projeto de Extensão para gerenciar os banhos de um pet shop. O sistema permite cadastrar clientes e pets, acompanhar banhos em andamento, gerenciar planos e consultar ou editar preços. A interface usa React e Vite. O Supabase fornece o banco PostgreSQL, a autenticação e o armazenamento de fotos.
+Projeto de Extensão para gerenciar os serviços de um pet shop. O sistema permite cadastrar clientes e pets, acompanhar serviços em andamento, gerenciar planos e consultar ou editar preços. A interface usa React e Vite. O Supabase fornece o banco PostgreSQL, a autenticação e o armazenamento de fotos.
 
 ## Pré-requisitos
 
@@ -29,6 +29,16 @@ grant select, insert on table public.clientes to authenticated;
 grant select, insert, update, delete on table public.animais, public.precos to authenticated;
 grant select, insert, update on table public.banhos to authenticated;
 ```
+
+4. Execute também o conteúdo de [supabase/migrations/202611240001_catalogo_planos.sql](supabase/migrations/202611240001_catalogo_planos.sql) no **SQL Editor**. O script cria o catálogo de planos e insere três opções de exemplo.
+
+5. Execute [supabase/migrations/202611240002_planos_por_porte.sql](supabase/migrations/202611240002_planos_por_porte.sql) para organizar o catálogo por porte.
+
+Se o catálogo já está instalado, execute somente as migrações que ainda não foram aplicadas. Ele aproveita os planos existentes nos três portes, inicialmente com os mesmos valores. Depois, cada opção pode ser editada separadamente. As assinaturas dos animais permanecem nas respectivas fichas.
+
+6. Execute [supabase/migrations/202611240003_atendimentos_servicos.sql](supabase/migrations/202611240003_atendimentos_servicos.sql) para iniciar e finalizar atendimentos com vários serviços. Em um projeto que já tem o catálogo por porte, basta aplicar esta migração.
+
+O atendimento registra os itens e o preço no início. Um plano de banho válido e com saldo pode cobrir até o valor do banho simples do porte do pet. O crédito é descontado ao iniciar o atendimento. A migração vincula assinaturas antigas quando o nome e o porte correspondem ao catálogo.
 
 ### 3. Configure o armazenamento de fotos
 
@@ -63,7 +73,7 @@ No Supabase, abra **Authentication → Users → Add user → Create new user**.
 npm run dev
 ```
 
-Abra o endereço exibido no terminal, geralmente `http://localhost:5173`. Entre com o usuário de teste e cadastre um cliente e um pet fictícios. Para conferir o fluxo principal, inicie e finalize um banho no painel.
+Abra o endereço exibido no terminal, geralmente `http://localhost:5173`. Entre com o usuário de teste e cadastre um cliente e um pet fictícios. Para conferir o fluxo principal, inicie e finalize um serviço no painel.
 
 ## Build e publicação opcional
 
